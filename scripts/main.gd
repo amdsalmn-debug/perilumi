@@ -3,6 +3,15 @@ extends Node3D
 const SAVE := "user://progress.cfg"
 const LANGS := ["tr", "en", "es", "pt", "fr", "de", "ar", "ru"]
 const SKIES: Array[Color] = [Color("bde6ff"), Color("ffd9ec"), Color("d9d2ff"), Color("ffe8c2"), Color("c8f4e4")]
+# Calm and thinking games alternate. Each full round of an age's list is one tier harder.
+const GAMES := [
+	["animals", "balloons", "peek", "music", "feed", "butterflies"],
+	["colors", "balloons", "shapes", "peek", "fruits", "count", "same", "butterflies", "big", "feed", "odd"],
+	["same", "howmany", "pairs", "odd", "order", "pattern", "number", "memory", "more", "add"],
+]
+# "Find the right one" games: three rounds, exactly one target with id == goal.
+const PICK := ["colors", "shapes", "fruits", "same", "big", "odd", "howmany", "add", "number", "more", "pattern"]
+const AGES := ["1-3", "3-4", "5-6"]
 
 var sound: Sound
 var cam: Camera3D
@@ -16,16 +25,19 @@ var privacy: Control
 var hud: Control
 var dots: HBoxContainer
 var hold_bar: ProgressBar
+var badge: Button
 
 var age := -1
 var level := 0
+var tier := 0
+var picked: Node3D
 var targets: Array[Node3D] = []
 var mode := ""
 var goal := 0
 var step := 0
 var rounds := 0
 var sequence: Array = []
-var prompt := ""
+var prompt: Array = []
 var busy := true
 var idle := 0.0
 var holding := false
@@ -89,6 +101,12 @@ func _fit() -> void:
 	else:
 		cam.keep_aspect = Camera3D.KEEP_WIDTH
 		cam.fov = 34.0
+	var window := DisplayServer.window_get_size()
+	var inset := 0.0
+	if OS.has_feature("mobile") and window.y > 0:
+		inset = maxf(DisplayServer.get_display_safe_area().position.y, 0) * s.y / window.y
+	menu.offset_top = inset
+	hud.offset_top = inset
 
 
 func _style(c: Color, radius: int) -> StyleBoxFlat:
@@ -135,17 +153,13 @@ func _build_ui() -> void:
 	menu.add_child(title)
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	row.offset_top = -330
-	row.offset_bottom = -110
+	row.offset_top = -420
+	row.offset_bottom = -70
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 24)
 	menu.add_child(row)
-	var labels := ["1-2", "3", "4-5"]
-	var colors := [Art.COLORS[0], Art.COLORS[3], Art.COLORS[5]]
 	for i in 3:
-		var b := _button(labels[i], colors[i], Vector2(200, 200), 70)
-		b.pressed.connect(start.bind(i))
-		row.add_child(b)
+		row.add_child(_age_card(i))
 
 	var info := _button("i", Art.COLORS[2], Vector2(90, 90), 48)
 	info.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -170,12 +184,20 @@ func _build_ui() -> void:
 	hold_bar.show_percentage = false
 	hold_bar.max_value = 1.0
 	hud.add_child(hold_bar)
+	badge = _button("", Art.COLORS[1], Vector2(180, 90), 44)
+	badge.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	badge.offset_left = -90
+	badge.offset_right = 90
+	badge.offset_top = 60
+	badge.offset_bottom = 150
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(badge)
 	var replay := _button("♪", Art.COLORS[2], Vector2(110, 110), 60)
 	replay.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	replay.offset_left = -138
 	replay.offset_right = -28
 	replay.offset_top = 50
-	replay.pressed.connect(func() -> void: sound.say([prompt]))
+	replay.pressed.connect(func() -> void: sound.say(prompt))
 	hud.add_child(replay)
 	dots = HBoxContainer.new()
 	dots.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
@@ -186,6 +208,56 @@ func _build_ui() -> void:
 	dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(dots)
 	_build_privacy(layer)
+
+
+# A button showing a 3D child of that age, so the choice is clear without reading.
+func _age_card(i: int) -> Button:
+	var b := _button("", [Art.COLORS[0], Art.COLORS[3], Art.COLORS[5]][i], Vector2(210, 350), 20)
+	b.pressed.connect(start.bind(i))
+	var view := SubViewport.new()
+	view.size = Vector2i(190, 255)
+	view.own_world_3d = true
+	view.transparent_bg = true
+	view.msaa_3d = Viewport.MSAA_4X
+	b.add_child(view)
+	var we := WorldEnvironment.new()
+	we.environment = Environment.new()
+	we.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	we.environment.ambient_light_color = Color("fff4ff")
+	we.environment.ambient_light_energy = 0.55
+	view.add_child(we)
+	var light := DirectionalLight3D.new()
+	light.rotation_degrees = Vector3(-35, -25, 0)
+	light.light_energy = 0.8
+	view.add_child(light)
+	var eye := Camera3D.new()
+	eye.projection = Camera3D.PROJECTION_ORTHOGONAL
+	eye.size = 2.75
+	eye.position = Vector3(0, 1.22, 5)
+	view.add_child(eye)
+	view.add_child(Art.kid(i))
+	var back := Panel.new()
+	back.position = Vector2(14, 14)
+	back.size = Vector2(182, 245)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	back.add_theme_stylebox_override("panel", _style(Color("fff4fb"), 46))
+	b.add_child(back)
+	var picture := TextureRect.new()
+	picture.texture = view.get_texture()
+	picture.position = Vector2(10, 9)
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(picture)
+	var text := Label.new()
+	text.text = AGES[i]
+	text.position = Vector2(0, 262)
+	text.size = Vector2(210, 80)
+	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	text.add_theme_font_size_override("font_size", 58)
+	text.add_theme_color_override("font_outline_color", Color("4a2a66"))
+	text.add_theme_constant_override("outline_size", 12)
+	b.add_child(text)
+	return b
 
 
 # Families policy: the privacy policy must be readable inside the app. Text only, no links.
@@ -225,11 +297,12 @@ func _dots(total: int, filled: int) -> void:
 	for c in dots.get_children():
 		dots.remove_child(c)
 		c.queue_free()
+	var d := 56 if total <= 8 else 40
 	for i in total:
 		var p := Panel.new()
-		p.custom_minimum_size = Vector2(56, 56)
+		p.custom_minimum_size = Vector2(d, d)
 		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		p.add_theme_stylebox_override("panel", _style(Art.COLORS[1] if i < filled else Color(1, 1, 1, 0.45), 28))
+		p.add_theme_stylebox_override("panel", _style(Art.COLORS[1] if i < filled else Color(1, 1, 1, 0.45), d / 2))
 		dots.add_child(p)
 
 
@@ -278,16 +351,23 @@ func new_level() -> void:
 	idle = 0.0
 	step = 0
 	rounds = 0
+	picked = null
 	_dots(0, 0)
-	if age == 0:
-		_level_touch()
-	elif age == 1:
-		_level_find()
-	else:
-		match level % 3:
-			0: _level_count()
-			1: _level_memory()
-			_: _level_order()
+	var games: Array = GAMES[age]
+	mode = games[level % games.size()]
+	tier = mini(level / games.size(), 3)
+	badge.text = "★ %d" % (level + 1)
+	match mode:
+		"animals": _level_animals()
+		"balloons", "butterflies": _level_catch()
+		"peek": _level_peek()
+		"feed": _level_feed()
+		"music": _level_music()
+		"count": _level_count()
+		"memory": _level_memory()
+		"order": _level_order()
+		"pairs": _level_pairs()
+		_: _pick_round()
 
 
 func _grow_garden() -> void:
@@ -299,7 +379,7 @@ func _grow_garden() -> void:
 	for i in mini(level, 24):
 		var f := Art.flower(Art.COLORS[r.randi() % 6])
 		var side := -1.0 if i % 2 == 0 else 1.0
-		f.position = Vector3(side * r.randf_range(2.4, 4.4), -0.35, r.randf_range(-4.5, -2.0))
+		f.position = Vector3(side * r.randf_range(3.2, 4.6), -0.35, r.randf_range(-4.5, -2.0))
 		f.scale = Vector3.ONE * r.randf_range(0.35, 0.55)
 		garden.add_child(f)
 
@@ -326,17 +406,18 @@ func _slots(count: int) -> Array:
 		3: [Vector3(-1.6, 0.4, 0.8), Vector3(0, 2.1, -0.4), Vector3(1.6, 0.4, 0.8)],
 		4: [Vector3(-1.2, 2.0, -0.4), Vector3(1.2, 2.0, -0.4), Vector3(-1.2, -0.1, 1.2), Vector3(1.2, -0.1, 1.2)],
 		6: [Vector3(-1.7, 2.1, -0.4), Vector3(0, 2.1, -0.4), Vector3(1.7, 2.1, -0.4), Vector3(-1.7, 0, 1.2), Vector3(0, 0, 1.2), Vector3(1.7, 0, 1.2)],
+		8: [Vector3(-2.25, 2.1, -0.4), Vector3(-0.75, 2.1, -0.4), Vector3(0.75, 2.1, -0.4), Vector3(2.25, 2.1, -0.4), Vector3(-2.25, 0, 1.2), Vector3(-0.75, 0, 1.2), Vector3(0.75, 0, 1.2), Vector3(2.25, 0, 1.2)],
 	}
 	var s: Array = all[count].duplicate()
 	s.shuffle()
 	return s
 
 
-func _ask(key: String, hint: Node3D = null, praise := false) -> void:
-	prompt = key
+func _ask(keys: Array, hint: Node3D = null, praise := false) -> void:
+	prompt = keys
 	busy = false
 	idle = 0.0
-	sound.say(["praise_%d" % (randi() % 3), key] if praise else [key])
+	sound.say(["praise_%d" % (randi() % 3)] + keys if praise else keys)
 	if hint:
 		hint.name = "Hint"
 		hint.position = Vector3(1.55, 3.9, 0.5)
@@ -351,62 +432,250 @@ func _drop_hint() -> void:
 		h.queue_free()
 
 
-func _level_touch() -> void:
-	mode = "animals" if level % 2 == 0 else "balloons"
-	goal = 4
-	var slots := _slots(4)
-	var kinds := _pick(4, 6)
-	for i in 4:
-		if mode == "animals":
-			_add(Art.animal(kinds[i]), kinds[i], slots[i])
-		else:
-			_add(Art.balloon(Art.COLORS[kinds[i]]), kinds[i], slots[i])
+func _level_animals() -> void:
+	var count: int = [3, 4, 6, 6][tier]
+	var kinds := _pick(count, 6)
+	var slots := _slots(count)
+	for i in count:
+		_add(Art.animal(kinds[i]), kinds[i], slots[i])
+	sequence = kinds.slice(0, mini(count, 4))
+	sequence.shuffle()
+	goal = sequence.size()
 	_dots(goal, 0)
-	if mode == "animals":
-		sequence = kinds
-		_ask("animals_%d" % sequence[0], Art.animal(sequence[0]))
-	else:
-		_ask("balloons")
+	_ask(["animals_%d" % sequence[0]], Art.animal(sequence[0]))
 
 
-func _level_find() -> void:
-	for c in targets:
+func _level_catch() -> void:
+	goal = [4, 4, 6, 8][tier] if mode == "balloons" else [3, 4, 6, 6][tier]
+	var slots := _slots(goal)
+	for i in goal:
+		var c: Color = Art.COLORS[(i + level) % 6]
+		var n := Art.balloon(c) if mode == "balloons" else Art.butterfly(c)
+		n.set_meta("phase", i * 1.7)
+		_add(n, i, slots[i])
+	_dots(goal, 0)
+	_ask([mode])
+
+
+func _level_peek() -> void:
+	goal = [3, 3, 4, 6][tier]
+	var kinds := _pick(goal, 6)
+	var slots := _slots(goal)
+	for i in goal:
+		var n := Node3D.new()
+		var friend := Art.animal(kinds[i])
+		friend.name = "Friend"
+		friend.position = Vector3(0, 0.15, -0.45)
+		friend.scale = Vector3.ONE * 0.8
+		n.add_child(friend)
+		var bush := Art.bush()
+		bush.name = "Bush"
+		n.add_child(bush)
+		_add(n, i, slots[i])
+	_dots(goal, 0)
+	_ask(["peek"])
+
+
+func _level_feed() -> void:
+	goal = [3, 4, 5, 6][tier]
+	var friend := Art.animal(0)
+	friend.name = "Friend"
+	friend.position = Vector3(0, 0.35, 0.6)
+	friend.scale = Vector3.ONE * 1.1
+	stage.add_child(friend)
+	var spots := [Vector3(-1.8, 2.2, 0), Vector3(1.8, 2.2, 0), Vector3(-1.9, 0.7, 0.8), Vector3(1.9, 0.7, 0.8), Vector3(-1.0, -0.45, 1.9), Vector3(1.0, -0.45, 1.9)]
+	spots.shuffle()
+	for i in goal:
+		_add(Art.fruit(5), i, spots[i])
+	_dots(goal, 0)
+	_ask(["feed"])
+
+
+func _level_music() -> void:
+	goal = [6, 8, 10, 12][tier]
+	var slots := _slots(6)
+	for i in 6:
+		_add(Art.flower(Art.COLORS[i]), i, slots[i])
+	_dots(goal, 0)
+	_ask(["music"])
+
+
+func _pick_round() -> void:
+	for c in stage.get_children():
 		stage.remove_child(c)
 		c.queue_free()
 	targets.clear()
-	_drop_hint()
-	mode = "colors" if level % 2 == 0 else "shapes"
-	var count := 3 if level < 6 else 4
-	var kinds := _pick(count, 6 if mode == "colors" else 5)
-	var slots := _slots(count)
-	var tint: Color = Art.COLORS.pick_random()
-	for i in count:
-		var n := Art.flower(Art.COLORS[kinds[i]]) if mode == "colors" else Art.shape(kinds[i], tint)
-		_add(n, kinds[i], slots[i])
-	goal = kinds.pick_random()
 	_dots(3, rounds)
-	var hint := Art.flower(Art.COLORS[goal], false) if mode == "colors" else Art.shape(goal, tint)
-	_ask("%s_%d" % [mode, goal], hint)
+	var count: int = [3, 4, 6, 6][tier]
+	match mode:
+		"colors", "fruits":
+			var kinds := _pick(count, 6)
+			var slots := _slots(count)
+			for i in count:
+				_add(Art.flower(Art.COLORS[kinds[i]]) if mode == "colors" else Art.fruit(kinds[i]), kinds[i], slots[i])
+			goal = kinds.pick_random()
+			var hint := Art.flower(Art.COLORS[goal], false) if mode == "colors" else Art.fruit(goal)
+			_ask(["%s_%d" % [mode, goal]], hint)
+		"shapes":
+			count = mini(count, 4)
+			var kinds := _pick(count, 5)
+			var slots := _slots(count)
+			var tint: Color = Art.COLORS.pick_random()
+			for i in count:
+				_add(Art.shape(kinds[i], tint), kinds[i], slots[i])
+			goal = kinds.pick_random()
+			_ask(["shapes_%d" % goal], Art.shape(goal, tint))
+		"same":
+			# id = shape * 6 + color; later tiers add look-alikes sharing one of the two.
+			goal = randi() % 30
+			var ids := [goal]
+			while ids.size() < count:
+				var id := randi() % 30
+				if tier > 0 and randf() < 0.7:
+					id = (goal / 6) * 6 + randi() % 6 if randf() < 0.5 else (randi() % 5) * 6 + goal % 6
+				if not id in ids:
+					ids.append(id)
+			var slots := _slots(count)
+			for i in count:
+				_add(Art.shape(ids[i] / 6, Art.COLORS[ids[i] % 6]), ids[i], slots[i])
+			_ask(["same"], Art.shape(goal / 6, Art.COLORS[goal % 6]))
+		"big":
+			count = [3, 4, 4, 6][tier]
+			var want := randi() % 2
+			var ratio: float = [0.6, 0.66, 0.72, 0.78][tier]
+			var kind := randi() % 5
+			var c: Color = Art.COLORS.pick_random()
+			var slots := _slots(count)
+			for i in count:
+				var large := (i == 0) == (want == 0)
+				_add(Art.shape(kind, c), 1 if i == 0 else 0, slots[i], 1.15 if large else 1.15 * ratio)
+			goal = 1
+			_ask(["big_%d" % want])
+		"odd":
+			var kinds := _pick(2, 5)
+			var colors := _pick(2, 6)
+			var other_kind := true
+			var other_color := tier == 0
+			if tier > 1 and randf() < 0.5:
+				other_kind = false
+				other_color = true
+			var slots := _slots(count)
+			for i in count:
+				var k: int = kinds[1 if i == 0 and other_kind else 0]
+				var c: int = colors[1 if i == 0 and other_color else 0]
+				_add(Art.shape(k, Art.COLORS[c]), 1 if i == 0 else 0, slots[i])
+			goal = 1
+			_ask(["odd"])
+		"howmany":
+			var top: int = [5, 6, 8, 10][tier]
+			goal = randi_range(1, top)
+			for i in goal:
+				var in_row := mini(5, goal - (i / 5) * 5)
+				var a := Art.apple()
+				a.position = Vector3((i % 5 - (in_row - 1) / 2.0) * 1.0, 2.1 - (i / 5) * 1.1, 0)
+				a.scale = Vector3.ONE * 0.8
+				stage.add_child(a)
+			_tiles(_choices(goal, top))
+			_ask(["howmany"])
+		"add":
+			var top: int = [5, 6, 8, 10][tier]
+			var left := randi_range(1, top - 1)
+			var right := randi_range(1, top - left)
+			goal = left + right
+			for side in [[left, -1.5], [right, 1.5]]:
+				var g := _group(side[0])
+				g.position = Vector3(side[1], 1.1, 0)
+				stage.add_child(g)
+			Art.label(stage, "+", 200, Vector3(0, 1.85, 0))
+			_tiles(_choices(goal, top))
+			_ask(["add"])
+		"number":
+			var top: int = [5, 10, 10, 10][tier]
+			var values := _pick(count, top)
+			var slots := _slots(count)
+			for i in count:
+				var v: int = values[i] + 1
+				_add(Art.tile(str(v), Art.COLORS[v % 6]), v, slots[i])
+			goal = values.pick_random() + 1
+			var hint: Node3D = Art.tile(str(goal), Art.COLORS[goal % 6]) if tier == 0 else null
+			_ask(["number", "numbers_%d" % (goal - 1)], hint)
+		"more":
+			var gap: int = [3, 2, 1, 1][tier]
+			var low := randi_range(1, [5, 6, 8, 9][tier] - gap)
+			var sides := [-1.55, 1.55]
+			sides.shuffle()
+			for i in 2:
+				var g := _group(low + gap * i)
+				Art.ball(g, Color("fff4fb"), Vector3(0, 0.75, -0.55), Vector3(2.5, 2.5, 0.1))
+				_add(g, i, Vector3(sides[i], 0.8, 0))
+			goal = 1
+			_ask(["more"])
+		"pattern":
+			var unit: Array = [[0, 1], [0, 0, 1], [0, 1, 2], [0, 1, 1, 2]][tier]
+			var kinds := _pick(3, 5)
+			var colors := _pick(3, 6)
+			var shown := 6 if unit.size() == 4 else 5
+			var gap := 4.5 / shown
+			for i in shown:
+				var j: int = unit[i % unit.size()]
+				var n := Art.shape(kinds[j], Art.COLORS[colors[j]])
+				n.position = Vector3(-2.25 + i * gap, 2.2, 0)
+				n.scale = Vector3.ONE * 0.55
+				stage.add_child(n)
+			Art.label(stage, "?", 150, Vector3(2.25, 2.55, 0))
+			var xs := [-1.6, 0.0, 1.6]
+			xs.shuffle()
+			for j in 3:
+				_add(Art.shape(kinds[j], Art.COLORS[colors[j]]), j, Vector3(xs[j], -0.2, 1.0))
+			goal = unit[shown % unit.size()]
+			_ask(["pattern"])
+
+
+# A cluster of apples centred 0.75 above its origin.
+func _group(count: int) -> Node3D:
+	var n := Node3D.new()
+	var lines := (count + 2) / 3
+	for i in count:
+		var in_row := mini(3, count - (i / 3) * 3)
+		var a := Art.apple()
+		a.position = Vector3((i % 3 - (in_row - 1) / 2.0) * 0.6, 0.45 + (lines - 1) * 0.3 - (i / 3) * 0.6, 0)
+		a.scale = Vector3.ONE * 0.65
+		n.add_child(a)
+	return n
+
+
+# The right number plus two different wrong ones, in random order.
+func _choices(right: int, top: int) -> Array:
+	var others := range(1, top + 1)
+	others.erase(right)
+	others.shuffle()
+	var all := [right, others[0], others[1]]
+	all.shuffle()
+	return all
+
+
+func _tiles(values: Array) -> void:
+	for i in values.size():
+		var v: int = values[i]
+		_add(Art.tile(str(v), Art.COLORS[v % 6]), v, Vector3((i - 1) * 1.6, -0.5, 2.0))
 
 
 func _level_count() -> void:
-	mode = "count"
-	goal = randi_range(1, clampi(2 + level / 3, 2, 5))
+	goal = randi_range(1, [3, 3, 4, 5][tier])
 	var slots := _slots(6)
 	for i in 6:
 		_add(Art.apple(), i, slots[i])
 	_dots(goal, 0)
-	_ask("count_%d" % (goal - 1))
+	_ask(["count_%d" % (goal - 1)])
 
 
 func _level_memory() -> void:
-	mode = "memory"
-	var count := 3 if level < 9 else 4
+	var count: int = [3, 3, 4, 4][tier]
 	var kinds := _pick(count, 6)
 	var slots := _slots(count)
 	for i in count:
 		_add(Art.flower(Art.COLORS[kinds[i]]), i, slots[i])
-	goal = clampi(2 + level / 6, 2, 4)
+	goal = [2, 3, 3, 4][tier]
 	sequence.clear()
 	for i in goal:
 		var next := randi() % count
@@ -421,8 +690,8 @@ func _show_sequence() -> void:
 	step = 0
 	_dots(goal, 0)
 	var mine := token
-	prompt = "watch"
-	sound.say([prompt])
+	prompt = ["watch"]
+	sound.say(prompt)
 	await get_tree().create_timer(2.2).timeout
 	for id in sequence:
 		if mine != token:
@@ -431,19 +700,52 @@ func _show_sequence() -> void:
 		_bounce(targets[id], 1.45)
 		await get_tree().create_timer(0.9).timeout
 	if mine == token:
-		_ask("repeat")
+		_ask(["repeat"])
 
 
 func _level_order() -> void:
-	mode = "order"
-	goal = 3 if level < 9 else 4
+	goal = [3, 3, 4, 4][tier]
 	var slots := _slots(goal)
 	var c: Color = Art.COLORS.pick_random()
 	var kind := randi() % 5
 	for i in goal:
 		_add(Art.shape(kind, c), i, slots[i], 0.55 + i * 0.28)
 	_dots(goal, 0)
-	_ask("order")
+	_ask(["order"])
+
+
+# Cards are shown face up for a moment, then turned over.
+func _level_pairs() -> void:
+	goal = [2, 3, 4, 4][tier]
+	var kinds := _pick(goal, 6)
+	var slots := _slots(goal * 2)
+	for i in goal * 2:
+		var n := Art.card(kinds[i % goal])
+		n.set_meta("up", true)
+		_add(n, kinds[i % goal], slots[i])
+	_dots(goal, 0)
+	busy = true
+	prompt = ["pairs"]
+	sound.say(prompt)
+	var mine := token
+	await get_tree().create_timer(3.5).timeout
+	if mine != token:
+		return
+	for t in targets:
+		_flip(t, false)
+	busy = false
+	idle = 0.0
+
+
+func _flip(t: Node3D, up: bool) -> void:
+	t.set_meta("up", up)
+	var s: float = t.get_meta("size")
+	var tw := t.create_tween()
+	tw.tween_property(t, "scale:x", s * 0.05, 0.14)
+	tw.tween_callback(func() -> void:
+		t.get_node("Front").visible = up
+		t.get_node("Back").visible = not up)
+	tw.tween_property(t, "scale:x", s, 0.14)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -465,6 +767,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func tap(t: Node3D) -> void:
 	idle = 0.0
 	var id: int = t.get_meta("id")
+	if mode in PICK:
+		_tap_pick(t, id)
+		return
 	match mode:
 		"animals":
 			sound.note(id * 2)
@@ -472,52 +777,63 @@ func tap(t: Node3D) -> void:
 				_wrong(t)
 				return
 			_collect(t)
-			step += 1
-			_dots(goal, step)
-			if step == goal:
-				_win()
-			else:
-				_drop_hint()
-				_cheer()
-				_ask("animals_%d" % sequence[step], Art.animal(sequence[step]), true)
+			if _advance():
+				return
+			_drop_hint()
+			_cheer()
+			_ask(["animals_%d" % sequence[step]], Art.animal(sequence[step]), true)
 		"balloons":
-			sound.note(step * 3)
+			sound.note(step * 2)
 			_burst(t.global_position + Vector3(0, 0.9, 0), 30)
 			targets.erase(t)
 			t.queue_free()
-			step += 1
-			_dots(goal, step)
 			_cheer()
-			if step == goal:
-				_win()
-		"colors", "shapes":
-			if id != goal:
-				_wrong(t)
-				return
-			sound.note(7)
-			_burst(t.global_position + Vector3(0, 0.8, 0), 30)
-			_bounce(t, 1.4)
-			rounds += 1
-			_dots(3, rounds)
+			_advance()
+		"butterflies":
+			sound.note(step * 2)
+			_collect(t)
 			_cheer()
-			sound.say(["yes"])
-			if rounds == 3:
-				_win()
-			else:
-				busy = true
-				var mine := token
-				await get_tree().create_timer(1.8).timeout
-				if mine == token:
-					_level_find()
+			_advance()
+		"peek":
+			sound.note(step * 3)
+			targets.erase(t)
+			_burst(t.global_position + Vector3(0, 1.0, 0.5), 20)
+			var friend: Node3D = t.get_node("Friend")
+			var bush: Node3D = t.get_node("Bush")
+			var tw := t.create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.tween_property(friend, "position", Vector3(0, 0.45, 0.4), 0.5)
+			tw.tween_property(friend, "scale", Vector3.ONE, 0.5)
+			tw.tween_property(bush, "position", Vector3(0, -0.2, 0), 0.4)
+			tw.tween_property(bush, "scale", Vector3.ONE * 0.6, 0.4)
+			_cheer()
+			_advance()
+		"feed":
+			sound.note(step * 2)
+			targets.erase(t)
+			var bunny: Node3D = stage.get_node("Friend")
+			var tw := t.create_tween().set_parallel()
+			tw.tween_property(t, "position", bunny.position + Vector3(0, 0.7, 0.8), 0.5).set_trans(Tween.TRANS_SINE)
+			tw.tween_property(t, "scale", Vector3.ONE * 0.1, 0.5).set_ease(Tween.EASE_IN)
+			tw.chain().tween_callback(t.queue_free)
+			var munch := bunny.create_tween()
+			munch.tween_interval(0.45)
+			munch.tween_property(bunny, "scale", Vector3(1.32, 0.95, 1.2), 0.15)
+			munch.tween_property(bunny, "scale", Vector3.ONE * 1.1, 0.3).set_trans(Tween.TRANS_BOUNCE)
+			_cheer()
+			_advance()
+		"music":
+			sound.note([0, 2, 4, 7, 9, 12][id], 0.6)
+			_bounce(t, 1.45)
+			_burst(t.global_position + Vector3(0, 1.0, 0.3), 8)
+			if step % 3 == 2:
+				_cheer()
+			_advance()
 		"count":
 			sound.say(["numbers_%d" % step])
 			_cheer()
 			sound.note(step * 2)
 			_collect(t)
-			step += 1
-			_dots(goal, step)
-			if step == goal:
-				_win()
+			_advance()
 		"memory":
 			sound.note(id * 4)
 			if id != sequence[step]:
@@ -530,10 +846,7 @@ func tap(t: Node3D) -> void:
 				return
 			_bounce(t, 1.4)
 			_cheer()
-			step += 1
-			_dots(goal, step)
-			if step == goal:
-				_win()
+			_advance()
 		"order":
 			if id != step:
 				_wrong(t)
@@ -541,10 +854,83 @@ func tap(t: Node3D) -> void:
 			sound.note(step * 4)
 			_collect(t)
 			_cheer()
-			step += 1
-			_dots(goal, step)
-			if step == goal:
-				_win()
+			_advance()
+		"pairs":
+			_tap_card(t, id)
+
+
+# One more correct tap; wins the level when the goal is reached.
+func _advance() -> bool:
+	step += 1
+	_dots(goal, step)
+	if step < goal:
+		return false
+	_win()
+	return true
+
+
+func _tap_pick(t: Node3D, id: int) -> void:
+	if id != goal:
+		_wrong(t)
+		return
+	sound.note(7)
+	_burst(t.global_position + Vector3(0, 0.8, 0), 30)
+	_bounce(t, 1.4)
+	rounds += 1
+	_dots(3, rounds)
+	_cheer()
+	sound.say(["yes"])
+	if rounds == 3:
+		_win()
+		return
+	busy = true
+	var mine := token
+	await get_tree().create_timer(1.8).timeout
+	if mine == token:
+		_pick_round()
+
+
+func _tap_card(t: Node3D, id: int) -> void:
+	if t.get_meta("up"):
+		return
+	sound.note(id * 2)
+	_flip(t, true)
+	if picked == null:
+		picked = t
+		return
+	var first := picked
+	picked = null
+	busy = true
+	var same: bool = first.get_meta("id") == id
+	var mine := token
+	await get_tree().create_timer(0.8 if same else 1.5).timeout
+	if mine != token:
+		return
+	if same:
+		_collect(first)
+		_collect(t)
+		_cheer()
+		if _advance():
+			return
+	else:
+		_flip(first, false)
+		_flip(t, false)
+		_encourage()
+	busy = false
+
+
+func _right(t: Node3D) -> bool:
+	var id: int = t.get_meta("id")
+	if mode in PICK:
+		return id == goal
+	match mode:
+		"animals", "memory":
+			return id == sequence[step]
+		"order":
+			return id == step
+		"pairs":
+			return picked == null or (t != picked and id == picked.get_meta("id"))
+	return true
 
 
 func _bounce(t: Node3D, amount: float) -> void:
@@ -578,7 +964,7 @@ func _encourage() -> void:
 	for a in [0.18, -0.18, 0.1, 0.0]:
 		tw.tween_property(fairy, "rotation:z", a, 0.22).set_trans(Tween.TRANS_SINE)
 	var again := "retry_%d" % (randi() % 2)
-	sound.say([again] if mode == "memory" else [again, prompt])
+	sound.say([again] if mode == "memory" else [again] + prompt)
 
 
 func _collect(t: Node3D) -> void:
@@ -636,7 +1022,9 @@ func _win() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(SAVE)
 	cfg.set_value("level", str(age), level)
-	cfg.save(SAVE)
+	# Write beside the save first, so a closed app never leaves half a file.
+	if cfg.save(SAVE + ".tmp") == OK:
+		DirAccess.rename_absolute(SAVE + ".tmp", SAVE)
 	await get_tree().create_timer(2.6).timeout
 	while mine == token and sound.talking():
 		await get_tree().process_frame
@@ -653,6 +1041,14 @@ func _process(delta: float) -> void:
 	fairy.get_node("WingR").rotation.y = -flap
 	if age < 0:
 		return
+	if mode == "balloons" or mode == "butterflies":
+		var sway := 0.35 if mode == "butterflies" else 0.1
+		for t in targets:
+			var p: float = t.get_meta("phase")
+			t.position = t.get_meta("home") + Vector3(sin(time * 1.3 + p) * sway, sin(time * 2.1 + p) * sway * 0.6, 0)
+			if mode == "butterflies":
+				t.get_node("WingL").rotation.y = sin(time * 11.0 + p) * 0.7
+				t.get_node("WingR").rotation.y = -sin(time * 11.0 + p) * 0.7
 	hold_bar.visible = holding
 	hold_bar.value = hold_bar.value + delta / 1.5 if holding else 0.0
 	if hold_bar.value >= 1.0:
@@ -663,17 +1059,13 @@ func _process(delta: float) -> void:
 		idle += delta
 		if idle > 8.0 and not sound.talking():
 			idle = 0.0
-			sound.say([prompt])
+			sound.say(prompt)
 			_help()
 
 
 func _help() -> void:
 	for t in targets:
-		var id: int = t.get_meta("id")
-		var right := mode == "balloons" or mode == "count"
-		right = right or (mode in ["animals", "memory"] and id == sequence[step])
-		right = right or (mode in ["colors", "shapes"] and id == goal) or (mode == "order" and id == step)
-		if right:
+		if _right(t):
 			_bounce(t, 1.3)
 			return
 

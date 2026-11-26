@@ -202,3 +202,164 @@ static func fairy() -> Node3D:
 	crown.position = Vector3(0.28, 1.72, 0.45)
 	n.add_child(crown)
 	return n
+
+
+static func label(parent: Node3D, text: String, size: int, pos: Vector3, c := Color("4a2a66")) -> void:
+	var l := Label3D.new()
+	l.text = text
+	l.font_size = size
+	l.pixel_size = 0.006
+	l.modulate = c
+	l.outline_modulate = Color.WHITE
+	l.outline_size = 24
+	l.position = pos
+	parent.add_child(l)
+
+
+static func box(parent: Node3D, c: Color, pos: Vector3, size: Vector3) -> MeshInstance3D:
+	var m := BoxMesh.new()
+	m.size = size
+	return part(parent, m, c, pos)
+
+
+static func tile(text: String, c: Color) -> Node3D:
+	var n := Node3D.new()
+	box(n, c, Vector3(0, 0.7, 0), Vector3(1.15, 1.25, 0.2))
+	box(n, Color("fff8ff"), Vector3(0, 0.7, 0.1), Vector3(0.95, 1.05, 0.06))
+	label(n, text, 120, Vector3(0, 0.7, 0.16))
+	return n
+
+
+# Memory card: "Front" shows the animal, "Back" shows a star.
+static func card(kind: int) -> Node3D:
+	var n := Node3D.new()
+	var front := Node3D.new()
+	front.name = "Front"
+	n.add_child(front)
+	box(front, Color("fff8ff"), Vector3(0, 0.75, 0), Vector3(1.15, 1.45, 0.1))
+	var friend := animal(kind)
+	friend.scale = Vector3.ONE * 0.52
+	friend.position = Vector3(0, 0.2, 0.3)
+	front.add_child(friend)
+	var back := Node3D.new()
+	back.name = "Back"
+	back.visible = false
+	n.add_child(back)
+	box(back, Color("a66bff"), Vector3(0, 0.75, 0), Vector3(1.15, 1.45, 0.12))
+	var star := shape(3, Color("ffd23f"))
+	star.scale = Vector3.ONE * 0.6
+	star.position = Vector3(0, 0.39, 0.2)
+	back.add_child(star)
+	return n
+
+
+static func butterfly(c: Color) -> Node3D:
+	var n := Node3D.new()
+	var dark := Color("4a2a66")
+	for s in [-1.0, 1.0]:
+		var w := Node3D.new()
+		w.name = "WingL" if s < 0 else "WingR"
+		w.position = Vector3(s * 0.05, 0.75, 0)
+		n.add_child(w)
+		ball(w, c, Vector3(s * 0.38, 0.18, 0), Vector3(0.72, 0.58, 0.08), Vector3(0, 0, s * 25))
+		ball(w, c.lightened(0.35), Vector3(s * 0.3, -0.25, 0), Vector3(0.5, 0.42, 0.08), Vector3(0, 0, -s * 20))
+		ball(w, Color.WHITE, Vector3(s * 0.45, 0.22, 0.05), Vector3(0.18, 0.18, 0.04))
+		tube(n, dark, Vector3(s * 0.12, 1.38, 0), 0.015, 0.015, 0.3, Vector3(0, 0, -s * 30))
+		ball(n, dark, Vector3(s * 0.2, 1.52, 0), Vector3.ONE * 0.08)
+	ball(n, dark, Vector3(0, 0.7, 0.03), Vector3(0.16, 0.65, 0.16))
+	ball(n, Color("ffd2b0"), Vector3(0, 1.12, 0.05), Vector3.ONE * 0.34)
+	for s in [-1.0, 1.0]:
+		ball(n, dark, Vector3(s * 0.07, 1.15, 0.22), Vector3.ONE * 0.06)
+	return n
+
+
+static func bush() -> Node3D:
+	var n := Node3D.new()
+	var greens := [Color("3fae52"), Color("55c465"), Color("48b95a")]
+	var spots := [Vector3(-0.42, 0.38, 0), Vector3(0.42, 0.38, 0), Vector3(0, 0.66, 0), Vector3(0, 0.3, 0.12)]
+	for i in 4:
+		ball(n, greens[i % 3], spots[i], Vector3(1.0, 0.9, 0.7))
+	for p in [Vector3(-0.5, 0.55, 0.36), Vector3(0.45, 0.28, 0.4), Vector3(0.1, 0.85, 0.38), Vector3(-0.12, 0.25, 0.5)]:
+		ball(n, Color("ff86c8"), p, Vector3.ONE * 0.13)
+	return n
+
+
+# 0 apple, 1 banana, 2 strawberry, 3 orange, 4 grapes, 5 carrot
+static func fruit(kind: int) -> Node3D:
+	if kind == 0:
+		return apple()
+	var n := Node3D.new()
+	var leaf := Color("4fb856")
+	match kind:
+		1:
+			for i in 11:
+				var a := -1.0 + i * 0.2
+				var w := 0.36 - absf(a) * 0.16
+				ball(n, Color("ffd91f"), Vector3(sin(a) * 0.62, 1.05 - cos(a) * 0.58, 0), Vector3(w, w, w))
+			ball(n, Color("6b4226"), Vector3(0.56, 0.76, 0), Vector3.ONE * 0.11)
+		2:
+			tube(n, Color("ee2f4b"), Vector3(0, 0.45, 0), 0.4, 0.04, 0.72)
+			ball(n, Color("ee2f4b"), Vector3(0, 0.8, 0), Vector3(0.8, 0.38, 0.8))
+			for p in [Vector3(-0.17, 0.68, 0.37), Vector3(0.17, 0.68, 0.37), Vector3(0, 0.52, 0.3), Vector3(-0.08, 0.34, 0.2), Vector3(0.1, 0.4, 0.23)]:
+				ball(n, Color("ffe27a"), p, Vector3(0.06, 0.08, 0.06))
+			for s in [-1.0, 0.0, 1.0]:
+				ball(n, leaf, Vector3(s * 0.2, 1.02, 0.1), Vector3(0.32, 0.12, 0.18), Vector3(0, 0, s * 25))
+		3:
+			ball(n, Color("ff9416"), Vector3(0, 0.55, 0), Vector3.ONE * 0.9)
+			ball(n, leaf, Vector3(0.14, 1.04, 0), Vector3(0.36, 0.14, 0.18), Vector3(0, 0, 25))
+			ball(n, Color("6b4226"), Vector3(0, 0.99, 0), Vector3.ONE * 0.1)
+		4:
+			var rows := [4, 3, 2, 1]
+			for r in 4:
+				for i in rows[r]:
+					ball(n, Color("8e44d6"), Vector3((i - (rows[r] - 1) / 2.0) * 0.27, 0.9 - r * 0.24, 0.04 * (r % 2)), Vector3.ONE * 0.33)
+			tube(n, Color("6b4226"), Vector3(0, 1.14, 0), 0.03, 0.04, 0.24)
+			ball(n, leaf, Vector3(0.2, 1.12, 0), Vector3(0.34, 0.14, 0.18), Vector3(0, 0, 20))
+		5:
+			tube(n, Color("ff7d1a"), Vector3(0, 0.48, 0), 0.27, 0.02, 0.9)
+			ball(n, Color("ff7d1a"), Vector3(0, 0.93, 0), Vector3(0.54, 0.22, 0.54))
+			for s in [-1.0, 0.0, 1.0]:
+				ball(n, leaf, Vector3(s * 0.15, 1.18, 0), Vector3(0.13, 0.45, 0.13), Vector3(0, 0, -s * 30))
+	return n
+
+
+# Age pictures for the menu: 0 baby, 1 toddler, 2 child.
+static func kid(kind: int) -> Node3D:
+	var n := Node3D.new()
+	var skin := Color("ffd2b0")
+	var hair := Color("7a4a32")
+	var pink := Color("ff5fae")
+	if kind == 0:
+		var suit := Color("ffb6dc")
+		ball(n, suit, Vector3(0, 0.36, 0), Vector3(0.74, 0.62, 0.55))
+		for s in [-1.0, 1.0]:
+			ball(n, suit, Vector3(s * 0.28, 0.14, 0.24), Vector3(0.32, 0.24, 0.46))
+			ball(n, skin, Vector3(s * 0.28, 0.13, 0.5), Vector3.ONE * 0.19)
+			ball(n, skin, Vector3(s * 0.42, 0.42, 0.1), Vector3(0.17, 0.36, 0.17), Vector3(0, 0, s * 40))
+		ball(n, skin, Vector3(0, 1.0, 0.05), Vector3(0.9, 0.84, 0.76))
+		ball(n, hair, Vector3(0.03, 1.45, 0.15), Vector3(0.24, 0.16, 0.14), Vector3(0, 0, 30))
+		_eyes(n, 1.06, 0.41, 0.17)
+		ball(n, Color("5fb8ff"), Vector3(0, 0.82, 0.42), Vector3(0.3, 0.22, 0.1))
+		ball(n, Color("ffd23f"), Vector3(0, 0.82, 0.49), Vector3.ONE * 0.1)
+		return n
+	var tall := kind == 2
+	var leg := 0.72 if tall else 0.4
+	var dress := Color("a66bff") if tall else Color("ffd23f")
+	var skirt := 0.78 if tall else 0.62
+	var body := leg + skirt / 2.0 - 0.05
+	var head := leg + skirt + (0.3 if tall else 0.28)
+	for s in [-1.0, 1.0]:
+		ball(n, skin, Vector3(s * 0.15, leg / 2.0 + 0.03, 0), Vector3(0.16, leg + 0.08, 0.16))
+		ball(n, pink, Vector3(s * 0.16, 0.06, 0.08), Vector3(0.23, 0.15, 0.32))
+		ball(n, skin, Vector3(s * 0.38, body + 0.05, 0.05), Vector3(0.13, skirt * 0.72, 0.13), Vector3(0, 0, s * 36))
+	tube(n, dress, Vector3(0, body, 0), 0.17, 0.46, skirt)
+	ball(n, hair, Vector3(0, head - (0.05 if tall else -0.07), -0.14), Vector3(0.9, 1.08 if tall else 0.86, 0.66))
+	ball(n, skin, Vector3(0, head, 0.06), Vector3(0.76, 0.72, 0.66))
+	ball(n, hair, Vector3(-0.12, head + 0.29, 0.2), Vector3(0.58, 0.24, 0.4), Vector3(0, 0, 16))
+	_eyes(n, head + 0.02, 0.39, 0.15)
+	ball(n, Color("d9536a"), Vector3(0, head - 0.2, 0.37), Vector3(0.16, 0.07, 0.05))
+	for s in [-1.0, 1.0]:
+		if not tall:
+			ball(n, hair, Vector3(s * 0.5, head + 0.22, -0.02), Vector3.ONE * 0.34)
+		ball(n, pink, Vector3((s * 0.37) if not tall else (0.22 + s * 0.12), head + 0.33, 0.22), Vector3(0.2, 0.15, 0.1), Vector3(0, 0, s * 25))
+	return n

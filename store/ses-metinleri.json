@@ -35,7 +35,12 @@
    "İki",
    "Üç",
    "Dört",
-   "Beş"
+   "Beş",
+   "Altı",
+   "Yedi",
+   "Sekiz",
+   "Dokuz",
+   "On"
   ],
   "balloons": "Balonları patlat!",
   "watch": "Çiçekleri izle!",
@@ -50,7 +55,31 @@
    "Aferin!",
    "Harikasın!",
    "Süper!"
-  ]
+  ],
+  "peek": "Kim saklanıyor? Dokun!",
+  "butterflies": "Kelebekleri yakala!",
+  "feed": "Tavşanı besle!",
+  "music": "Çiçeklere dokun, müzik yap!",
+  "same": "Aynısını bul!",
+  "big": [
+   "Kocaman olanı bul!",
+   "Küçük olanı bul!"
+  ],
+  "odd": "Farklı olanı bul!",
+  "fruits": [
+   "Elmayı bul!",
+   "Muzu bul!",
+   "Çileği bul!",
+   "Portakalı bul!",
+   "Üzümü bul!",
+   "Havucu bul!"
+  ],
+  "pairs": "Eş olan kartları bul!",
+  "pattern": "Sırada hangisi var?",
+  "howmany": "Kaç elma var?",
+  "add": "Hepsi kaç elma eder?",
+  "number": "Bu sayıyı bul!",
+  "more": "Daha çok elma hangisinde?"
  },
  "en": {
   "animals": [
@@ -88,7 +117,12 @@
    "Two",
    "Three",
    "Four",
-   "Five"
+   "Five",
+   "Six",
+   "Seven",
+   "Eight",
+   "Nine",
+   "Ten"
   ],
   "balloons": "Pop the balloons!",
   "watch": "Watch the flowers!",
@@ -103,7 +137,31 @@
    "Well done!",
    "Amazing!",
    "Great!"
-  ]
+  ],
+  "peek": "Who is hiding? Tap!",
+  "butterflies": "Catch the butterflies!",
+  "feed": "Feed the bunny!",
+  "music": "Tap the flowers and make music!",
+  "same": "Find the same one!",
+  "big": [
+   "Find the big one!",
+   "Find the small one!"
+  ],
+  "odd": "Find the different one!",
+  "fruits": [
+   "Find the apple!",
+   "Find the banana!",
+   "Find the strawberry!",
+   "Find the orange!",
+   "Find the grapes!",
+   "Find the carrot!"
+  ],
+  "pairs": "Find the matching cards!",
+  "pattern": "What comes next?",
+  "howmany": "How many apples?",
+  "add": "How many apples altogether?",
+  "number": "Find this number!",
+  "more": "Which one has more apples?"
  },
  "es": {
   "animals": [
@@ -141,7 +199,12 @@
    "Dos",
    "Tres",
    "Cuatro",
-   "Cinco"
+   "Cinco",
+   "Seis",
+   "Siete",
+   "Ocho",
+   "Nueve",
+   "Diez"
   ],
   "balloons": "¡Explota los globos!",
   "watch": "¡Mira las flores!",
@@ -156,7 +219,31 @@
    "¡Muy bien!",
    "¡Genial!",
    "¡Estupendo!"
-  ]
+  ],
+  "peek": "¿Quién se esconde? ¡Toca!",
+  "butterflies": "¡Atrapa las mariposas!",
+  "feed": "¡Dale de comer al conejito!",
+  "music": "¡Toca las flores y haz música!",
+  "same": "¡Busca el que es igual!",
+  "big": [
+   "¡Busca el grande!",
+   "¡Busca el pequeño!"
+  ],
+  "odd": "¡Busca el diferente!",
+  "fruits": [
+   "¡Busca la manzana!",
+   "¡Busca el plátano!",
+   "¡Busca la fresa!",
+   "¡Busca la naranja!",
+   "¡Busca las uvas!",
+   "¡Busca la zanahoria!"
+  ],
+  "pairs": "¡Busca las cartas iguales!",
+  "pattern": "¿Cuál sigue ahora?",
+  "howmany": "¿Cuántas manzanas hay?",
+  "add": "¿Cuántas manzanas hay en total?",
+  "number": "¡Busca este número!",
+  "more": "¿Dónde hay más manzanas?"
  },
  "pt": {
   "animals": [
@@ -194,7 +281,12 @@
    "Dois",
    "Três",
    "Quatro",
-   "Cinco"
+   "Cinco",
+   "Seis",
+   "Sete",
+   "Oito",
+   "Nove",
+   "Dez"
   ],
   "balloons": "Estoure os balões!",
   "watch": "Olhe as flores!",
@@ -209,7 +301,31 @@
    "Muito bem!",
    "Incrível!",
    "Ótimo!"
-  ]
+  ],
+  "peek": "Quem está escondido? Toque!",
+  "butterflies": "Pegue as borboletas!",
+  "feed": "Dê comida ao coelhinho!",
+  "music": "Toque nas flores e faça música!",
+  "same": "Encontre o que é igual!",
+  "big": [
+   "Encontre o grande!",
+   "Encontre o pequeno!"
+  ],
+  "odd": "Encontre o diferente!",
+  "fruits": [
+   "Encontre a maçã!",
+   "Encontre a banana!",
+   "Encontre o morango!",
+   "Encontre a laranja!",
+   "Encontre a uva!",
+   "Encontre a cenoura!"
+  ],
+  "pairs": "Encontre as cartas iguais!",
+  "pattern": "Qual vem agora?",
+  "howmany": "Quantas maçãs tem?",
+  "add": "Quantas maçãs são ao todo?",
+  "number": "Encontre este número!",
+  "more": "Onde há mais maçãs?"
  },
  "fr": {
   "animals": [
@@ -247,7 +363,12 @@
    "Deux",
    "Trois",
    "Quatre",
-   "Cinq"
+   "Cinq",
+   "Six",
+   "Sept",
+   "Huit",
+   "Neuf",
+   "Dix"
   ],
   "balloons": "Éclate les ballons !",
   "watch": "Regarde les fleurs !",
@@ -262,7 +383,31 @@
    "Bravo !",
    "Super !",
    "Génial !"
-  ]
+  ],
+  "peek": "Qui se cache ? Touche !",
+  "butterflies": "Attrape les papillons !",
+  "feed": "Donne à manger au lapin !",
+  "music": "Touche les fleurs et fais de la musique !",
+  "same": "Trouve le même !",
+  "big": [
+   "Trouve le grand !",
+   "Trouve le petit !"
+  ],
+  "odd": "Trouve celui qui est différent !",
+  "fruits": [
+   "Trouve la pomme !",
+   "Trouve la banane !",
+   "Trouve la fraise !",
+   "Trouve l'orange !",
+   "Trouve le raisin !",
+   "Trouve la carotte !"
+  ],
+  "pairs": "Trouve les cartes pareilles !",
+  "pattern": "Qu'est-ce qui vient après ?",
+  "howmany": "Combien y a-t-il de pommes ?",
+  "add": "Combien de pommes en tout ?",
+  "number": "Trouve ce nombre !",
+  "more": "Où y a-t-il le plus de pommes ?"
  },
  "de": {
   "animals": [
@@ -300,7 +445,12 @@
    "Zwei",
    "Drei",
    "Vier",
-   "Fünf"
+   "Fünf",
+   "Sechs",
+   "Sieben",
+   "Acht",
+   "Neun",
+   "Zehn"
   ],
   "balloons": "Lass die Ballons platzen!",
   "watch": "Schau dir die Blumen an!",
@@ -315,7 +465,31 @@
    "Gut gemacht!",
    "Toll!",
    "Super!"
-  ]
+  ],
+  "peek": "Wer versteckt sich da? Tipp drauf!",
+  "butterflies": "Fang die Schmetterlinge!",
+  "feed": "Füttere das Häschen!",
+  "music": "Tipp auf die Blumen und mach Musik!",
+  "same": "Finde das Gleiche!",
+  "big": [
+   "Finde das Große!",
+   "Finde das Kleine!"
+  ],
+  "odd": "Finde das, was anders ist!",
+  "fruits": [
+   "Finde den Apfel!",
+   "Finde die Banane!",
+   "Finde die Erdbeere!",
+   "Finde die Orange!",
+   "Finde die Trauben!",
+   "Finde die Karotte!"
+  ],
+  "pairs": "Finde die gleichen Karten!",
+  "pattern": "Was kommt als Nächstes?",
+  "howmany": "Wie viele Äpfel sind das?",
+  "add": "Wie viele Äpfel sind es zusammen?",
+  "number": "Finde diese Zahl!",
+  "more": "Wo sind mehr Äpfel?"
  },
  "ar": {
   "animals": [
@@ -353,7 +527,12 @@
    "اثنان",
    "ثلاثة",
    "أربعة",
-   "خمسة"
+   "خمسة",
+   "ستة",
+   "سبعة",
+   "ثمانية",
+   "تسعة",
+   "عشرة"
   ],
   "balloons": "فرقعي البالونات!",
   "watch": "شاهدي الزهور!",
@@ -368,7 +547,31 @@
    "أحسنتِ!",
    "رائع!",
    "ممتاز!"
-  ]
+  ],
+  "peek": "من يختبئ؟ المسي!",
+  "butterflies": "أمسكي الفراشات!",
+  "feed": "أطعمي الأرنب!",
+  "music": "المسي الزهور واصنعي الموسيقى!",
+  "same": "ابحثي عن المتشابه!",
+  "big": [
+   "ابحثي عن الكبير!",
+   "ابحثي عن الصغير!"
+  ],
+  "odd": "ابحثي عن المختلف!",
+  "fruits": [
+   "ابحثي عن التفاحة!",
+   "ابحثي عن الموزة!",
+   "ابحثي عن الفراولة!",
+   "ابحثي عن البرتقالة!",
+   "ابحثي عن العنب!",
+   "ابحثي عن الجزرة!"
+  ],
+  "pairs": "ابحثي عن البطاقتين المتشابهتين!",
+  "pattern": "ما التالي؟",
+  "howmany": "كم تفاحة هنا؟",
+  "add": "كم تفاحة في المجموع؟",
+  "number": "ابحثي عن هذا الرقم!",
+  "more": "أين التفاح الأكثر؟"
  },
  "ru": {
   "animals": [
@@ -406,7 +609,12 @@
    "Два",
    "Три",
    "Четыре",
-   "Пять"
+   "Пять",
+   "Шесть",
+   "Семь",
+   "Восемь",
+   "Девять",
+   "Десять"
   ],
   "balloons": "Лопни шарики!",
   "watch": "Смотри на цветы!",
@@ -421,6 +629,30 @@
    "Молодец!",
    "Отлично!",
    "Здорово!"
-  ]
+  ],
+  "peek": "Кто спрятался? Нажми!",
+  "butterflies": "Поймай бабочек!",
+  "feed": "Покорми зайчика!",
+  "music": "Нажимай на цветы и играй музыку!",
+  "same": "Найди такой же!",
+  "big": [
+   "Найди большой!",
+   "Найди маленький!"
+  ],
+  "odd": "Найди лишний!",
+  "fruits": [
+   "Найди яблоко!",
+   "Найди банан!",
+   "Найди клубнику!",
+   "Найди апельсин!",
+   "Найди виноград!",
+   "Найди морковку!"
+  ],
+  "pairs": "Найди одинаковые карточки!",
+  "pattern": "Что будет дальше?",
+  "howmany": "Сколько здесь яблок?",
+  "add": "Сколько всего яблок?",
+  "number": "Найди это число!",
+  "more": "Где яблок больше?"
  }
 }
