@@ -48,6 +48,12 @@ jobs:
         run: |
           mkdir -p build
           "$RUNNER_TEMP/godot" --headless --install-android-build-template --export-debug apk build/perilumi.apk
+          # Android 11+ metin okuma motorunu gorebilmek icin gerekli
+          f=android/build/src/main/AndroidManifest.xml
+          [ -f "$f" ] || f=android/build/AndroidManifest.xml
+          sed -i '0,/<application/s//<queries><intent><action android:name="android.intent.action.TTS_SERVICE" \/><\/intent><\/queries>\n    <application/' "$f"
+          grep -n TTS_SERVICE "$f"
+          "$RUNNER_TEMP/godot" --headless --export-debug apk build/perilumi.apk
           test -s build/perilumi.apk
       - name: Izin kontrolu
         run: |
