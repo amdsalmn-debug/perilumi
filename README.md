@@ -1,5 +1,5 @@
 # Perilumi
-1-5 yaş için sesli, çevrimdışı 3D eğitici oyun (Godot 4.6.2).
+1-5 yaş için sesli, çevrimdışı 3D eğitici oyun (Godot 4.6.2). Ses dosyaları `voice/<dil>/` içinde; metinleri `store/ses-metinleri.json`.
 
 ## Derleme
 Her gönderimde GitHub Actions `perilumi-test-apk` üretir. İmza anahtarı eklenince `perilumi-play-aab` de üretilir.

@@ -6,6 +6,9 @@ const RATE := 22050
 var _fx: Array[AudioStreamPlayer] = []
 var _next := 0
 var _cache := {}
+var _voice: AudioStreamPlayer
+var _queue: Array[String] = []
+var lang := "en"
 
 
 func _ready() -> void:
@@ -13,6 +16,9 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_fx.append(p)
+	_voice = AudioStreamPlayer.new()
+	_voice.finished.connect(_play_next)
+	add_child(_voice)
 	var music := AudioStreamPlayer.new()
 	add_child(music)
 	var notes := [0, 4, 7, 4, 9, 7, 4, 2, 0, 4, 7, 12, 9, 7, 2, 4]
@@ -22,6 +28,10 @@ func _ready() -> void:
 	var loop := _wav(data)
 	loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	loop.loop_end = data.size() / 2
+	# The mixer reads past loop_end while interpolating; without spare samples Android crashes.
+	var padded := data.duplicate()
+	padded.append_array(data.slice(0, 64))
+	loop.data = padded
 	music.stream = loop
 	music.volume_db = -22.0
 	music.play()
@@ -64,11 +74,25 @@ func win() -> void:
 		await get_tree().create_timer(0.12).timeout
 
 
-func say(text: String, lang: String) -> void:
-	if not DisplayServer.has_feature(DisplayServer.FEATURE_TEXT_TO_SPEECH):
+# Recorded clips: res://voice/<lang>/<key>.ogg
+func say(keys: Array) -> void:
+	_voice.stop()
+	_queue.assign(keys)
+	_play_next()
+
+
+func queue(keys: Array) -> void:
+	_queue.append_array(keys)
+	if not _voice.playing:
+		_play_next()
+
+
+func talking() -> bool:
+	return _voice.playing or not _queue.is_empty()
+
+
+func _play_next() -> void:
+	if _queue.is_empty():
 		return
-	var voices := DisplayServer.tts_get_voices_for_language(lang)
-	if voices.is_empty():
-		return
-	DisplayServer.tts_stop()
-	DisplayServer.tts_speak(text, voices[0], 100, 1.15, 0.9)
+	_voice.stream = load("res://voice/%s/%s.ogg" % [lang, _queue.pop_front()])
+	_voice.play()

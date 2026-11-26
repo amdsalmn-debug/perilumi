@@ -1,10 +1,9 @@
 extends Node3D
 
 const SAVE := "user://progress.cfg"
+const LANGS := ["tr", "en", "es", "pt", "fr", "de", "ar", "ru"]
 const SKIES: Array[Color] = [Color("bde6ff"), Color("ffd9ec"), Color("d9d2ff"), Color("ffe8c2"), Color("c8f4e4")]
 
-var lang := "en"
-var texts: Dictionary
 var sound: Sound
 var cam: Camera3D
 var env: Environment
@@ -31,13 +30,13 @@ var idle := 0.0
 var holding := false
 var token := 0
 var time := 0.0
+var hop := 0.0
 
 
 func _ready() -> void:
 	var code := OS.get_locale_language()
-	lang = code if Texts.DATA.has(code) else "en"
-	texts = Texts.DATA[lang]
 	sound = Sound.new()
+	sound.lang = code if code in LANGS else "en"
 	add_child(sound)
 	_build_world()
 	_build_ui()
@@ -64,8 +63,10 @@ func _build_world() -> void:
 	cam.fov = 34.0
 	add_child(cam)
 	cam.look_at_from_position(Vector3(0, 5.2, 12), Vector3(0, 2.25, 0))
-	Art.ball(self, Color("78cf70"), Vector3(0, -3.2, -2), Vector3(22, 6, 16))
+	Art.ball(self, Color("78cf70"), Vector3(0, -3.2, -2), Vector3(60, 6, 16))
 	Art.ball(self, Color("9ade8a"), Vector3(-6, -1, -9), Vector3(14, 6, 6))
+	for x in [-19.0, 19.0]:
+		Art.ball(self, Color("9ade8a"), Vector3(x, -1.4, -9.5), Vector3(18, 6, 6))
 	Art.ball(self, Color("8bd57f"), Vector3(6, -1.5, -10), Vector3(14, 7, 6))
 	sun_ball = Art.ball(self, Color("ffe27a"), Vector3(3.2, 7.2, -10), Vector3.ONE * 1.8)
 	for p in [Vector3(-3, 6.4, -8), Vector3(1, 7.8, -12)]:
@@ -165,7 +166,7 @@ func _build_ui() -> void:
 	replay.offset_left = -138
 	replay.offset_right = -28
 	replay.offset_top = 50
-	replay.pressed.connect(func() -> void: sound.say(prompt, lang))
+	replay.pressed.connect(func() -> void: sound.say([prompt]))
 	hud.add_child(replay)
 	dots = HBoxContainer.new()
 	dots.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
@@ -288,11 +289,11 @@ func _slots(count: int) -> Array:
 	return s
 
 
-func _ask(text: String, hint: Node3D = null) -> void:
-	prompt = text
+func _ask(key: String, hint: Node3D = null, praise := false) -> void:
+	prompt = key
 	busy = false
 	idle = 0.0
-	sound.say(text, lang)
+	sound.say(["praise_%d" % (randi() % 3), key] if praise else [key])
 	if hint:
 		hint.name = "Hint"
 		hint.position = Vector3(1.55, 3.9, 0.5)
@@ -320,9 +321,9 @@ func _level_touch() -> void:
 	_dots(goal, 0)
 	if mode == "animals":
 		sequence = kinds
-		_ask(texts.animals[sequence[0]], Art.animal(sequence[0]))
+		_ask("animals_%d" % sequence[0], Art.animal(sequence[0]))
 	else:
-		_ask(texts.balloons)
+		_ask("balloons")
 
 
 func _level_find() -> void:
@@ -342,7 +343,7 @@ func _level_find() -> void:
 	goal = kinds.pick_random()
 	_dots(3, rounds)
 	var hint := Art.flower(Art.COLORS[goal], false) if mode == "colors" else Art.shape(goal, tint)
-	_ask(texts[mode][goal], hint)
+	_ask("%s_%d" % [mode, goal], hint)
 
 
 func _level_count() -> void:
@@ -352,7 +353,7 @@ func _level_count() -> void:
 	for i in 6:
 		_add(Art.apple(), i, slots[i])
 	_dots(goal, 0)
-	_ask(texts.count[goal - 1])
+	_ask("count_%d" % (goal - 1))
 
 
 func _level_memory() -> void:
@@ -377,9 +378,9 @@ func _show_sequence() -> void:
 	step = 0
 	_dots(goal, 0)
 	var mine := token
-	prompt = texts.watch
-	sound.say(prompt, lang)
-	await get_tree().create_timer(2.0).timeout
+	prompt = "watch"
+	sound.say([prompt])
+	await get_tree().create_timer(2.2).timeout
 	for id in sequence:
 		if mine != token:
 			return
@@ -387,7 +388,7 @@ func _show_sequence() -> void:
 		_bounce(targets[id], 1.45)
 		await get_tree().create_timer(0.9).timeout
 	if mine == token:
-		_ask(texts.repeat)
+		_ask("repeat")
 
 
 func _level_order() -> void:
@@ -399,14 +400,15 @@ func _level_order() -> void:
 	for i in goal:
 		_add(Art.shape(kind, c), i, slots[i], 0.55 + i * 0.28)
 	_dots(goal, 0)
-	_ask(texts.order)
+	_ask("order")
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if busy or not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 	var best: Node3D
-	var best_d := get_viewport().get_visible_rect().size.x * 0.17
+	var screen := get_viewport().get_visible_rect().size
+	var best_d := minf(screen.x, screen.y * 0.5625) * 0.17
 	for t in targets:
 		var center := t.global_position + Vector3(0, 0.75 * t.scale.y, 0)
 		var d: float = cam.unproject_position(center).distance_to(event.position)
@@ -433,7 +435,8 @@ func tap(t: Node3D) -> void:
 				_win()
 			else:
 				_drop_hint()
-				_ask(texts.animals[sequence[step]], Art.animal(sequence[step]))
+				_cheer()
+				_ask("animals_%d" % sequence[step], Art.animal(sequence[step]), true)
 		"balloons":
 			sound.note(step * 3)
 			_burst(t.global_position + Vector3(0, 0.9, 0), 30)
@@ -441,6 +444,7 @@ func tap(t: Node3D) -> void:
 			t.queue_free()
 			step += 1
 			_dots(goal, step)
+			_cheer()
 			if step == goal:
 				_win()
 		"colors", "shapes":
@@ -452,16 +456,19 @@ func tap(t: Node3D) -> void:
 			_bounce(t, 1.4)
 			rounds += 1
 			_dots(3, rounds)
+			_cheer()
+			sound.say(["yes"])
 			if rounds == 3:
 				_win()
 			else:
 				busy = true
 				var mine := token
-				await get_tree().create_timer(1.1).timeout
+				await get_tree().create_timer(1.8).timeout
 				if mine == token:
 					_level_find()
 		"count":
-			sound.say(texts.numbers[step], lang)
+			sound.say(["numbers_%d" % step])
+			_cheer()
 			sound.note(step * 2)
 			_collect(t)
 			step += 1
@@ -474,11 +481,12 @@ func tap(t: Node3D) -> void:
 				_wrong(t)
 				busy = true
 				var mine := token
-				await get_tree().create_timer(0.8).timeout
+				await get_tree().create_timer(3.0).timeout
 				if mine == token:
 					_show_sequence()
 				return
 			_bounce(t, 1.4)
+			_cheer()
 			step += 1
 			_dots(goal, step)
 			if step == goal:
@@ -489,6 +497,7 @@ func tap(t: Node3D) -> void:
 				return
 			sound.note(step * 4)
 			_collect(t)
+			_cheer()
 			step += 1
 			_dots(goal, step)
 			if step == goal:
@@ -507,9 +516,26 @@ func _wrong(t: Node3D) -> void:
 	var tw := t.create_tween()
 	for a in [0.25, -0.25, 0.15, 0.0]:
 		tw.tween_property(t, "rotation:z", a, 0.09)
-	sound.note(-8, 0.25)
-	if mode != "memory":
-		sound.say(prompt, lang)
+	_encourage()
+
+
+func _cheer() -> void:
+	var mouth: Node3D = fairy.get_node("Mouth")
+	var tw := fairy.create_tween()
+	tw.tween_property(self, "hop", 0.55, 0.22).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(mouth, "scale", Vector3(0.28, 0.17, 0.06), 0.2)
+	tw.tween_property(self, "hop", 0.0, 0.45).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mouth, "scale", Vector3(0.16, 0.07, 0.05), 0.3)
+	_burst(fairy.position + Vector3(0, 1.4, 0.8), 14)
+
+
+# The fairy is never sad: she nods, smiles and invites another try.
+func _encourage() -> void:
+	var tw := fairy.create_tween()
+	for a in [0.18, -0.18, 0.1, 0.0]:
+		tw.tween_property(fairy, "rotation:z", a, 0.22).set_trans(Tween.TRANS_SINE)
+	var again := "retry_%d" % (randi() % 2)
+	sound.say([again] if mode == "memory" else [again, prompt])
 
 
 func _collect(t: Node3D) -> void:
@@ -558,7 +584,8 @@ func _win() -> void:
 	if mine != token:
 		return
 	sound.win()
-	sound.say(texts.praise.pick_random(), lang)
+	_cheer()
+	sound.queue(["praise_%d" % (randi() % 3)])
 	for x in [-1.8, 0.0, 1.8]:
 		_burst(Vector3(x, 3.2, 0.5), 60)
 	fairy.create_tween().tween_property(fairy, "rotation:y", TAU, 1.0).from(0.0)
@@ -568,6 +595,8 @@ func _win() -> void:
 	cfg.set_value("level", str(age), level)
 	cfg.save(SAVE)
 	await get_tree().create_timer(2.6).timeout
+	while mine == token and sound.talking():
+		await get_tree().process_frame
 	if mine == token:
 		new_level()
 
@@ -575,7 +604,7 @@ func _win() -> void:
 func _process(delta: float) -> void:
 	time += delta
 	fairy.position.x = sin(time * 0.8) * (0.0 if age < 0 else 0.35)
-	fairy.position.y = (1.7 if age < 0 else 4.0) + sin(time * 2.2) * 0.12
+	fairy.position.y = (1.7 if age < 0 else 4.0) + sin(time * 2.2) * 0.12 + hop
 	var flap := sin(time * 9.0) * 0.45
 	fairy.get_node("WingL").rotation.y = flap
 	fairy.get_node("WingR").rotation.y = -flap
@@ -589,9 +618,9 @@ func _process(delta: float) -> void:
 		return
 	if not busy:
 		idle += delta
-		if idle > 8.0:
+		if idle > 8.0 and not sound.talking():
 			idle = 0.0
-			sound.say(prompt, lang)
+			sound.say([prompt])
 			_help()
 
 
@@ -612,5 +641,3 @@ func _notification(what: int) -> void:
 			get_tree().quit()
 		else:
 			show_menu()
-	elif what == NOTIFICATION_APPLICATION_PAUSED:
-		DisplayServer.tts_stop()

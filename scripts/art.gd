@@ -196,7 +196,7 @@ static func fairy() -> Node3D:
 	ball(n, skin, Vector3(0, 1.35, 0.12), Vector3(0.92, 0.86, 0.82))
 	ball(n, hair, Vector3(-0.15, 1.72, 0.3), Vector3(0.68, 0.28, 0.45), Vector3(0, 0, 18))
 	_eyes(n, 1.37, 0.52, 0.18)
-	ball(n, Color("d9536a"), Vector3(0, 1.13, 0.5), Vector3(0.16, 0.07, 0.05))
+	ball(n, Color("d9536a"), Vector3(0, 1.13, 0.5), Vector3(0.16, 0.07, 0.05)).name = "Mouth"
 	var crown := shape(3, Color("ffd23f"))
 	crown.scale = Vector3.ONE * 0.32
 	crown.position = Vector3(0.28, 1.72, 0.45)
