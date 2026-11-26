@@ -60,6 +60,14 @@ jobs:
         with:
           name: perilumi-test-apk
           path: build/perilumi.apk
+      - name: Denetim dosyalari
+        run: |
+          mkdir -p proje/android
+          (cd android/build && find . \( -name '*.gradle' -o -name gradle.properties -o -name AndroidManifest.xml \) -not -path '*/intermediates/*' -exec cp --parents {} ../../proje/android/ \;)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: denetim-proje
+          path: proje
       - name: Play AAB
         id: aab
         env:
@@ -77,3 +85,41 @@ jobs:
         with:
           name: perilumi-play-aab
           path: build/perilumi.aab
+
+  # Third-party scanners run in their own job: no repository token, no signing secrets.
+  denetim:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: perilumi-test-apk
+          path: apk
+      - uses: actions/download-artifact@v4
+        with:
+          name: denetim-proje
+          path: proje
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
+      - name: 16 KB sayfa uyumu
+        run: |
+          unzip -q -o apk/perilumi.apk 'lib/*' -d so
+          for f in so/lib/*/*.so; do echo "$f $(readelf -lW "$f" | awk '$1=="LOAD"{print $NF}' | sort -u | tr '\n' ' ')"; done
+      - name: greenlight (APK)
+        run: |
+          git init -q gl && cd gl
+          git fetch -q --depth 1 https://github.com/RevylAI/greenlight fcb36e395bd4ae20448f2535382baecba9396fd9
+          git checkout -q FETCH_HEAD
+          go build -o ../greenlight ./cmd/greenlight
+          cd .. && set +e
+          ./greenlight playscan --apk apk/perilumi.apk; echo "greenlight cikis=$?"
+      - name: app-store-compliance (Android proje dosyalari)
+        run: |
+          git init -q asc && cd asc
+          git fetch -q --depth 1 https://github.com/mjmirza/app-store-compliance a6c44640f4b1ee2a0985be4a9e6cf8cc26decf57
+          git checkout -q FETCH_HEAD
+          cd .. && set +e
+          bash asc/agent-os/hooks/app-store-compliance-guard.sh "$PWD/proje"; echo "guard cikis=$?"

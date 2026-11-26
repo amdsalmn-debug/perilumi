@@ -12,6 +12,7 @@ var stage: Node3D
 var garden: Node3D
 var sun_ball: MeshInstance3D
 var menu: Control
+var privacy: Control
 var hud: Control
 var dots: HBoxContainer
 var hold_bar: ProgressBar
@@ -146,6 +147,14 @@ func _build_ui() -> void:
 		b.pressed.connect(start.bind(i))
 		row.add_child(b)
 
+	var info := _button("i", Art.COLORS[2], Vector2(90, 90), 48)
+	info.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	info.offset_left = -110
+	info.offset_right = -20
+	info.offset_top = 20
+	info.pressed.connect(func() -> void: privacy.show())
+	menu.add_child(info)
+
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -176,6 +185,40 @@ func _build_ui() -> void:
 	dots.add_theme_constant_override("separation", 18)
 	dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(dots)
+	_build_privacy(layer)
+
+
+# Families policy: the privacy policy must be readable inside the app. Text only, no links.
+func _build_privacy(layer: CanvasLayer) -> void:
+	var back := ColorRect.new()
+	back.color = Color("fff4fb")
+	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	privacy = back
+	layer.add_child(privacy)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.offset_left = 40
+	scroll.offset_right = -40
+	scroll.offset_top = 150
+	scroll.offset_bottom = -40
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	privacy.add_child(scroll)
+	var text := Label.new()
+	text.text = Privacy.TEXT[sound.lang]
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.mouse_filter = Control.MOUSE_FILTER_PASS
+	text.add_theme_font_size_override("font_size", 32)
+	text.add_theme_color_override("font_color", Color("3a2352"))
+	if sound.lang == "ar":
+		text.text_direction = Control.TEXT_DIRECTION_RTL
+		text.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	scroll.add_child(text)
+	var close := _button("X", Art.COLORS[4], Vector2(110, 110), 48)
+	close.position = Vector2(28, 20)
+	close.pressed.connect(func() -> void: privacy.hide())
+	privacy.add_child(close)
+	privacy.hide()
 
 
 func _dots(total: int, filled: int) -> void:
@@ -637,7 +680,9 @@ func _help() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		if age < 0:
+		if privacy.visible:
+			privacy.hide()
+		elif age < 0:
 			get_tree().quit()
 		else:
 			show_menu()
